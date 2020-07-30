@@ -81,12 +81,15 @@ Function.prototype.bind2 = function(obj) {
   const context = obj ?? window
   const that = this
   const args = [...arguments].slice(1)
+  
+  const temp() {}
  
   const resFn = function() {
   	return that.apply(this instanceof resFn ? this : context, [...args, ...arguments])
   }
   
-  resFn.prototype = this.prototype
+  temp.prototype = this.prototype
+  resFn.prototype = new temp()
   return resFn
 }
 ```
