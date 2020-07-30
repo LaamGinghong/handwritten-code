@@ -240,7 +240,7 @@ function merge(left, right) {
   while(left.length) {
     result.push(left.shift())
   }
-  while(right.lefnth) {
+  while(right.length) {
     result.push(right.shift())
   }
   return result

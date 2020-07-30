@@ -1,11 +1,71 @@
 class Promise {
-  static resolvePromise(promise1, promise2, resolve, reject) {
-    if (promise1 === promise2) reject("Chaining cycle detected for Promise");
-    if (promise2 instanceof Promise) {
-      promise2.then(resolve, reject);
-    } else {
-      resolve(promise2);
-    }
+  static resolve(value) {
+    if (value instanceof Promise) return value;
+    return new Promise(function (resolve, reject) {
+      if (value && value.then && typeof value.then === "function") {
+        setTimeout(function () {
+          value.then(resolve, reject);
+        });
+      } else {
+        resolve(value);
+      }
+    });
+  }
+
+  static reject(reason) {
+    return new Promise(function (_, reject) {
+      reject(reason);
+    });
+  }
+
+  static all(promises) {
+    if (!promises || typeof promises[Symbol.iterator] !== "function")
+      throw TypeError(
+        `${typeof promises} is not iterable (cannot read property Symbol(Symbol.iterator))`
+      );
+    let index = 0;
+    const result = [];
+    return new Promise(function (resolve, reject) {
+      if (!promises.length) resolve(promises);
+      else {
+        function processValue(value, i) {
+          result[i] = value;
+          if (++index === promises.length) {
+            resolve(result);
+          }
+        }
+        for (let i = 0; i < promises.length; i++) {
+          Promise.resolve(promises[i]).then(
+            function (value) {
+              processValue(value, i);
+            },
+            function (reason) {
+              reject(reason);
+            }
+          );
+        }
+      }
+    });
+  }
+
+  static race(promises) {
+    if (!promises || typeof promises[Symbol.iterator] !== "function")
+      throw TypeError(
+        `${typeof promises} is not iterable (cannot read property Symbol(Symbol.iterator))`
+      );
+    return new Promise(function (resolve, reject) {
+      if (!promises.length) return;
+      for (const promise of promises) {
+        Promise.resolve(promise).then(
+          function (value) {
+            resolve(value);
+          },
+          function (reason) {
+            reject(reason);
+          }
+        );
+      }
+    });
   }
 
   /**
@@ -83,22 +143,24 @@ class Promise {
   }
 
   then(onFulfilled, onRejected) {
-    if (!onFulfilled) {
-      onFulfilled = function (value) {
-        return value;
-      };
-    }
-    if (!onRejected) {
-      onRejected = function (reason) {
-        throw reason;
-      };
-    }
+    onFulfilled =
+      typeof onFulfilled === "function"
+        ? onFulfilled
+        : function (value) {
+            return value;
+          };
+    onRejected =
+      typeof onRejected === "function"
+        ? onRejected
+        : function (reason) {
+            throw reason;
+          };
 
     const promise = new Promise((resolve, reject) => {
       if (this.state === "fulfilled") {
         try {
           const result = onFulfilled(this.value);
-          Promise.resolvePromise(promise, result, resolve, reject);
+          resolvePromise(promise, result, resolve, reject);
         } catch (e) {
           reject(e);
         }
@@ -116,7 +178,7 @@ class Promise {
         this.onFulfilledCallback.push((value) => {
           try {
             const result = onFulfilled(value);
-            Promise.resolvePromise(promise, result, resolve, reject);
+            resolvePromise(promise, result, resolve, reject);
           } catch (e) {
             reject(e);
           }
@@ -132,5 +194,14 @@ class Promise {
       }
     });
     return promise;
+  }
+}
+
+function resolvePromise(promise1, promise2, resolve, reject) {
+  if (promise1 === promise2) reject("Chaining cycle detected for Promise");
+  if (promise2 instanceof Promise) {
+    promise2.then(resolve, reject);
+  } else {
+    resolve(promise2);
   }
 }
