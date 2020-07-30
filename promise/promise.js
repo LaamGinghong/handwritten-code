@@ -174,7 +174,8 @@ class Promise {
 
       if (this.state === "rejected") {
         try {
-          onRejected(this.reason);
+          const result = onRejected(this.reason);
+          resolvePromise(result, resolve, reject);
         } catch (e) {
           reject(e);
         }
@@ -192,13 +193,21 @@ class Promise {
 
         this.onRejectedCallback.push((reason) => {
           try {
-            onRejected(reason);
+            const result = onRejected(reason);
+            resolvePromise(result, resolve, reject);
           } catch (e) {
             reject(e);
           }
         });
       }
     });
+  }
+
+  finally(callback) {
+    return this.then(
+      () => Promise.resolve(callback()),
+      () => Promise.reject(callback())
+    );
   }
 }
 
