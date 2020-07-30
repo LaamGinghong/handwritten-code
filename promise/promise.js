@@ -162,11 +162,11 @@ class Promise {
             throw reason;
           };
 
-    const promise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       if (this.state === "fulfilled") {
         try {
           const result = onFulfilled(this.value);
-          resolvePromise(promise, result, resolve, reject);
+          resolvePromise(result, resolve, reject);
         } catch (e) {
           reject(e);
         }
@@ -184,7 +184,7 @@ class Promise {
         this.onFulfilledCallback.push((value) => {
           try {
             const result = onFulfilled(value);
-            resolvePromise(promise, result, resolve, reject);
+            resolvePromise(result, resolve, reject);
           } catch (e) {
             reject(e);
           }
@@ -199,15 +199,13 @@ class Promise {
         });
       }
     });
-    return promise;
   }
 }
 
-function resolvePromise(promise1, promise2, resolve, reject) {
-  if (promise1 === promise2) reject("Chaining cycle detected for Promise");
-  if (promise2 instanceof Promise) {
-    promise2.then(resolve, reject);
+function resolvePromise(promise, resolve, reject) {
+  if (promise instanceof Promise) {
+    promise.then(resolve, reject);
   } else {
-    resolve(promise2);
+    resolve(promise);
   }
 }
