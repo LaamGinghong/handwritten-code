@@ -13,8 +13,14 @@ class Promise {
   }
 
   static reject(reason) {
-    return new Promise(function (_, reject) {
-      reject(reason);
+    return new Promise(function (resolve, reject) {
+      if (reason && reason.then && typeof reason.then === "function") {
+        setTimeout(function () {
+          reason.then(resolve, reject);
+        });
+      } else {
+        reject(reason);
+      }
     });
   }
 
